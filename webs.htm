@@ -1,0 +1,1028 @@
+<!--这个模版来自[最好模版-http://BestMoban.Com],需要更多模版请访问http://BestMoban.Com-->
+<html>
+
+<head>
+<SCRIPT language=JavaScript>
+<!--
+document.oncontextmenu=new Function("event.returnValue=false;");
+document.onselectstart=new Function("event.returnValue=false;");
+//--> 
+</SCRIPT>
+<meta http-equiv="Content-Type" content="text/html; charset=gb2312">
+<title>00</title>
+</head>
+
+<body>
+<STYLE type=text/css>
+A:link {
+	COLOR: silver; TEXT-DECORATION: none
+}
+A:hover {
+	COLOR: white; TEXT-DECORATION: none
+}
+A:active {
+	COLOR: white; TEXT-DECORATION: none
+}
+A:visited {
+	COLOR: silver; TEXT-DECORATION: none
+}
+BODY {CURSOR: crosshair; MARGIN: 0px
+}
+.TITLE {
+	COLOR: #0099ff; FONT-FAMILY: "ARIAL", "HELVETICA", "SANS-SERIF"; FONT-SIZE: 9pt
+}
+.TIME {
+	COLOR: #0099ff; FONT-FAMILY: "ARIAL", "HELVETICA", "SANS-SERIF"; FONT-SIZE: 9pt
+}
+          </STYLE>
+<SCRIPT language=JavaScript>
+
+var objMmInfo = null;
+var intMmCnt = 0;
+var intSelMmCnt=0;
+var intActMmCnt=0;
+var cActIdx=0;
+var cActTit="nAnT";
+var strMmInfo ="Infomation";
+
+var blnfpl=false;
+var blnEnabled= false;
+var blnEOT=false;
+var arrSelMm=null;
+var arrActMm=null;
+var intExobudStat =0;
+var tidTLab=null;
+var tidErr=null;
+var tidMsg=null;
+var intErrCnt=0;
+var blnRept=false;
+
+var blnAutoProc = true;
+var blnElaps=true; 
+var intDelay =500;
+
+window.onerror = killerror;
+document.onkeydown = processKey;
+function killerror() {return true;}
+function processKey() { 
+if ( event.keyCode == 90 || event.keyCode == 0x25) {playPrev();this.blur();}
+ else if ( event.keyCode == 67 ) {wmpStop();this.blur();}
+ else if ( event.keyCode == 86 || event.keyCode == 80) {startExobud();this.blur();}
+ else if ( event.keyCode == 88 ) {wmpPP();this.blur();}
+ else if ( event.keyCode == 66 || event.keyCode == 0x27) {playNext();this.blur();}
+ else if ( event.keyCode == 84 ) {chgTimeFmt();this.blur();}
+ else if ( event.keyCode == 65 ) {wmpMute();this.blur();}
+ else if ( event.keyCode == 83 || event.keyCode == 82) {chgPMode();this.blur();}
+ else if ( event.keyCode == 76 ) {chkRept();this.blur();}
+ else if ( event.keyCode == 77 ) {openPlist();this.blur();}
+ else if ( event.keyCode == 0x28 ) {wmpVolDn();this.blur();}
+ else if ( event.keyCode == 0x26 ) {wmpVolUp();this.blur();}
+ else if ( event.keyCode == 73 ) {alert(strMmInfo);}
+} 
+
+function wmpInit(){
+ var wmps = Exobud.settings;
+ var wmpc = Exobud.ClosedCaption;
+
+ wmps.autoStart=true;
+ wmps.balance=0;
+ wmps.enableErrorDialogs=false;
+ wmps.invokeURLs = false;
+ wmps.mute=false;
+ wmps.playCount=1;
+ wmps.rate=1;
+ wmps.volume = 100;
+ if(blnUseSmi){wmpc.captioningID="capText"; capText.style.display="";}
+ Exobud.enabled=true;
+}
+
+function mkMmPath(u, t, f,s){
+ this.mmUrl = u;
+ this.mmTit =t;
+ this.mmDur =0;
+ this.selMm=f;
+ this.actMm=f;
+ if(blnUseSmi){this.mmSmi=s;}
+}
+
+
+function mkList(u,t,s,f){
+ var cu=u;
+ var ct=t;
+ var cs=s;
+ var cf=f;
+ var idx=0;
+
+ if(objMmInfo == null){ objMmInfo=new Array(); idx=0;}
+ else{ idx=objMmInfo.length;}
+ if(u=="" || u==null){cu="mms://";}
+ if(t=="" || t==null){ct="不知道这个是什么歌曲";}
+ if(f=="f" || f=="F"){cf="f";}
+ else{cf="t"; intSelMmCnt=intSelMmCnt+1;}
+
+ if(blnUseSmi){ objMmInfo[idx]=new mkMmPath(cu,ct,cf,cs);}
+ else{objMmInfo[idx]=new mkMmPath(cu,ct,cf);}
+
+ intActMmCnt=intSelMmCnt;
+ intMmCnt=objMmInfo.length;
+}
+
+function mkSel(){
+ arrSelMm=null;
+ intSelMmCnt=0;
+ var selidx = 0;
+
+ if(intMmCnt<=0){intExobudStat=1; blnEnabled=false; return;} 
+
+ arrSelMm=new Array();
+ for(var i=0; i<intMmCnt;i++){
+	if(objMmInfo[i].selMm =="t"){arrSelMm[selidx]=i;selidx=selidx+1;}
+ }
+ intSelMmCnt=arrSelMm.length;
+
+ if(intSelMmCnt<=0){blnEnabled=false;intExobudStat=2; arrSelMm=null; return;}
+ else{blnEnabled=true; mkAct();}
+}
+
+function mkAct(){
+ arrActMm=null;
+ intActMmCnt=0;
+ var selidx=0;
+ var actidx=0;
+
+ if(blnEnabled){
+	arrActMm=new Array();
+	for(var i=0; i<intSelMmCnt;i++){
+		selidx=arrSelMm[i];
+		if(objMmInfo[selidx].actMm=="t"){arrActMm[actidx]=selidx; actidx=actidx+1;}
+	}
+	intActMmCnt=arrActMm.length;
+ }
+ else{return;}
+ if(intActMmCnt<=0){blnEOT=true;arrActMm=null;}
+ else{blnEOT=false;}
+}
+
+
+function chkAllSel(){
+ for(var i=0; i<intMmCnt; i++){
+   objMmInfo[i].selMm="t";
+   objMmInfo[i].actMm="t";
+ }
+ mkSel();
+}
+
+function chkAllDesel(){
+ for(var i=0; i<intMmCnt; i++){
+   objMmInfo[i].selMm="f";
+   objMmInfo[i].actMm="f";
+ }
+ mkSel();
+}
+
+function chkItemSel(idx){
+ if(objMmInfo[idx].selMm =="t"){objMmInfo[idx].selMm="f";objMmInfo[idx].actMm="f";}
+ else{objMmInfo[idx].selMm="t";objMmInfo[idx].actMm="t";}
+ mkSel();
+}
+
+function chkItemAct(idx){
+ objMmInfo[idx].actMm="f";
+ mkAct();
+}
+
+function mkSelAct(){
+ var idx=0;
+ for(var i=0; i<intSelMmCnt; i++){
+	idx=arrSelMm[i];
+	objMmInfo[idx].actMm="t";
+ }
+ mkAct();
+}
+
+function initExobud(){
+ wmpInit();
+ mkSel();
+ blnfpl=false;
+ if(blnShowVolCtrl == false) {
+	document.images['vmute'].style.display = "none";
+	document.images['vdn'].style.display = "none";
+	document.images['vup'].style.display = "none";
+ }
+ if(!blnShowPlist){document.images['plist'].style.display = "none";}
+
+ if(blnRept){imgChange('rept',1);}
+ else{imgChange('rept',0);}
+
+ if(blnRndPlay){imgChange('pmode',1);}
+ else{imgChange('pmode',0);}
+ showTLab();
+ disp1.innerHTML="播放器已准备就绪请点播放键";
+ if(blnStatusBar){window.status=('播放器已准备就绪请点播放键');}
+ if(blnAutoStart){startExobud();}
+
+}
+
+function startExobud(){
+ var wmps= Exobud.playState;
+ if(wmps==2){Exobud.controls.play(); return;}
+ if(wmps==3){return;}
+
+ blnfpl=false;
+ if(!blnEnabled){waitMsg();return;}
+ if(blnEOT){mkSelAct();}
+ if(intErrCnt>0){intErrCnt=0;tidErr=setTimeout('retryPlay(),1000');return;}
+ if(blnRndPlay){rndPlay();}
+ else{cActIdx=arrActMm[0]; selMmPlay(cActIdx);}
+}
+
+
+function selMmPlay(idx){
+ clearTimeout(tidErr);
+ cActIdx=idx;
+ var trknum=idx+1;
+ var ctit =objMmInfo[idx].mmTit;
+ if(ctit=="nAnT"){ctit="Title Author 未知..."}
+ if(blnUseSmi){Exobud.ClosedCaption.SAMIFileName = objMmInfo[idx].mmSmi;}
+ Exobud.URL = objMmInfo[idx].mmUrl;
+ cActTit="T"+ trknum + ". " + ctit;
+ disp1.innerHTML = cActTit;
+ if(blnStatusBar){window.status=(cActTit);}
+ chkItemAct(cActIdx); 
+}
+
+
+function wmpPlay(){Exobud.controls.play();}
+
+function wmpStop(){
+ intErrCnt=0;
+ clearTimeout(tidErr);
+ clearInterval(tidTLab);
+ imgChange("stopt",1);
+ imgChange("pauzt",0);
+ imgChange("scope",0);
+ showTLab();
+ mkSelAct();
+ Exobud.controls.stop();
+ Exobud.close();
+ disp1.innerHTML="ekehome播放器已停止";
+ if(blnStatusBar){window.status=('ekehome播放器');return true;}
+}
+
+
+function wmpPause(){Exobud.controls.pause();}
+
+
+function wmpPP(){
+	var wmps = Exobud.playState;
+	var wmpc=Exobud.controls;
+	clearInterval(tidTLab);
+	clearTimeout(tidMsg);
+	if (wmps == 2) {wmpc.play();}
+	if (wmps == 3) {wmpc.pause();disp2.innerHTML="Pause"; tidMsg=setTimeout('rtnTLab()',1500);}
+	return;
+}
+
+
+
+function rndPlay(){
+ if(!blnEnabled){waitMsg();return;}
+ intErrCnt=0;
+ var idx=Math.floor(Math.random() * intActMmCnt);
+ cActIdx= arrActMm[idx];
+ selMmPlay(cActIdx);
+}
+
+
+function playAuto(){
+ if(blnRept){ selMmPlay(cActIdx); return;}
+ if(!blnAutoProc){wmpStop();return;}
+ if(blnfpl){wmpStop(); return;}
+ if(!blnEnabled){wmpStop();return;}
+ if(blnEOT){ if(blnLoopTrk){startExobud();}
+	   else{wmpStop();}
+ }
+ else{  if(blnRndPlay){rndPlay();}
+	else{cActIdx= arrActMm[0]; selMmPlay(cActIdx);}
+ }
+}
+
+
+function selPlPlay(idx){
+ blnfpl=true;
+ selMmPlay(idx);
+}
+
+
+
+function playPrev(){
+ var wmps= Exobud.playState;
+ if(wmps==2 || wmps==3){Exobud.controls.stop();}
+ blnfpl=false;
+ if(!blnEnabled){waitMsg();return;}
+ if(blnEOT){mkSelAct();}
+
+ intErrCnt=0;
+ if(blnRndPlay){rndPlay();}
+ else{	var idx=cActIdx;
+ 	var blnFind=false;
+	for(var i=0;i<intSelMmCnt;i++){if(cActIdx==arrSelMm[i]){idx=i-1; blnFind=true;}}
+	if(!blnFind){startExobud();return;}
+	if(idx<0){idx=intSelMmCnt-1;cActIdx=arrSelMm[idx];}
+	else{cActIdx=arrSelMm[idx];}
+	selMmPlay(cActIdx);
+ }
+}
+
+function playNext(){
+ var wmps= Exobud.playState;
+ if(wmps==2 || wmps==3){Exobud.controls.stop();}
+ blnfpl=false;
+ if(!blnEnabled){waitMsg();return;}
+ if(blnEOT){mkSelAct();}
+
+ intErrCnt=0;
+ if(blnRndPlay){rndPlay();}
+ else{	var idx=cActIdx;
+ 	var blnFind=false;
+	for(var i=0;i<intSelMmCnt;i++){	if(cActIdx==arrSelMm[i]){idx=i+1; blnFind=true;}}
+	if(!blnFind){startExobud();return;}
+	if(idx>=intSelMmCnt){idx=0;cActIdx=arrSelMm[idx];}
+	else{cActIdx=arrSelMm[idx];}
+	selMmPlay(cActIdx);
+ }
+}
+
+
+function retryPlay(){
+  selMmPlay(cActIdx);
+}
+
+
+function chkRept(){
+ var wmps=Exobud.playState;
+ if(wmps == 3){clearInterval(tidTLab);}
+ if(blnRept){blnRept=false; imgChange('rept',0);disp2.innerHTML="Norm. Play";}
+ else{blnRept=true; imgChange('rept',1);disp2.innerHTML="Repeat";}
+ tidMsg= setTimeout('rtnTLab()',1000);
+}
+
+
+function chgPMode(){
+ var wmps=Exobud.playState;
+ if(wmps == 3){clearInterval(tidTLab);}
+ if(blnRndPlay){blnRndPlay=false; imgChange('pmode',0);disp2.innerHTML="SEQ. Play";}
+ else{blnRndPlay=true; imgChange('pmode',1);disp2.innerHTML="RND. Play";}
+ tidMsg=setTimeout('rtnTLab()',1000); 
+}
+
+
+function evtOSChg(f){
+// 0(Undefined) 8(MediaChanging) 9(MediaLocating) 10(MediaConnecting) 11(MediaLoading) 
+// 12(MediaOpening) 13(MediaOpen) 20(MediaWaiting) 21(OpeningUnknownURL)
+
+ if(f==8){capText.innerHTML="正在读取...";}
+ if(f==13){
+	var strTitle = Exobud.currentMedia.getItemInfo("title");
+	if(strTitle.length <=0){strTitle = "未知"}
+	var strAuthor = Exobud.currentMedia.getItemInfo("Author");
+	if(strAuthor.length <=0){strAuthor = "未知"}
+	var strCopy = Exobud.currentMedia.getItemInfo("Copyright");
+	if(strCopy.length <=0){strCopy = "未知"}
+	var strType = Exobud.currentMedia.getItemInfo("MediaType");
+	var strDur=Exobud.currentMedia.durationString;
+	var strUrl =Exobud.URL;
+	var trknum=cActIdx+1;
+	var ctit = objMmInfo[cActIdx].mmTit;
+	if(ctit=="nAnT"){ objMmInfo[cActIdx].mmTit = strAuthor + " - " + strTitle;
+		ctit=strAuthor + " - " + strTitle;
+		cActTit="T"+ trknum + ". " +ctit;
+		disp1.innerHTML = cActTit;
+	}
+
+	strMmInfo= "Media (歌曲名称) : " + strTitle + " (ekehome:" + strType +")" + "\n"
+	strMmInfo= strMmInfo + "Media (Author) : " + strAuthor + "\n"
+        //strMmInfo= strMmInfo + "Media (URL) : 媒体路径已被隐藏 \n";
+	strMmInfo= strMmInfo + "Media (音乐文件地址) : " +strUrl + "\n"
+	strMmInfo= strMmInfo + "Media (版权信息) : " + strCopy +"\n" 
+	strMmInfo= strMmInfo + "Media (歌曲长度) : " +strDur +"\n\n";
+        strMmInfo= strMmInfo + "一刻家园：http://www.ekehome.com \n";
+	strMmInfo= strMmInfo + "ekehome 特雷威尔修改\n";
+	if(blnShowMmInfo){alert(strMmInfo);}
+ }
+}
+
+
+function evtPSChg(f){
+// 0(Undefined) 1(Stopped) 2 (Paused) 3(Playing) 4(ScanFowrd) 5(ScanReverse)
+// 6(Buffering) 7(Waitng) 8(MediaEnded) 9(Transitioning) 10(Redy)
+
+ switch(f){
+	case 1:
+		evtStop();
+		break;
+	case 2:
+		evtPause();
+		break;
+	case 3:
+		evtPlay();
+		break;
+	case 8:
+		setTimeout('playAuto()', intDelay);
+		break;
+ }
+}
+
+
+//evtWmpBuff()
+function evtWmpBuff(f){
+	 if(f){ disp2.innerHTML = "Buffering";
+		var msg="Loading...Please Wait." + cActTit;
+		disp1.innerHTML = msg;
+		if(blnStatusBar){window.status=(msg);}
+	}
+	else{ disp1.innerHTML = cActTit; showTLab();}
+}
+
+
+//evtWmpError()
+function evtWmpError(){
+ intErrCnt=intErrCnt+1;
+ if(intErrCnt<=3){
+	disp2.innerHTML="ekehome("+intErrCnt+")";
+	var msg="(ekehome:" + intErrCnt +") " +cActTit;
+	disp1.innerHTML="ekehome" +cActTit;
+	if(blnStatusBar){window.status=(msg);}
+	tidErr=setTimeout('retryPlay()',1000);
+ }
+ else{	clearTimeout(tidErr);
+	intErrCnt=0;showTLab();
+	var msg="ekehome";
+	if(blnStatusBar){window.status=(msg);}	
+	setTimeout('playAuto()',1000);}
+}
+
+function evtStop(){
+	clearTimeout(tidErr);
+	clearInterval(tidTLab);
+	showTLab();
+	intErrCnt=0;
+	imgChange("pauzt",0);
+	imgChange("playt",0);
+	imgChange("scope",0);
+	disp1.innerHTML="ekehome";
+	if(blnStatusBar){window.status=('ekehome');return true;}
+}
+
+function evtPause(){
+ imgChange("pauzt",1)
+ imgChange("playt",0);
+ imgChange("stopt",0);
+ imgChange("scope",0);
+ clearInterval(tidTLab);
+ showTLab();
+}
+
+function evtPlay(){
+ imgChange("pauzt",0)
+ imgChange("playt",1);
+ imgChange("stopt",0);
+ imgChange("scope",1);
+ tidTLab=setInterval('showTLab()',1000);
+}
+
+//showTLab()
+function showTLab(){
+ var ps=Exobud.playState;
+ if(ps==2 || ps==3){
+	var cp=Exobud.controls.currentPosition
+	var cps=Exobud.controls.currentPositionString
+	var dur=Exobud.currentMedia.duration;
+	var durs=Exobud.currentMedia.durationString;
+	if(blnElaps){disp2.innerHTML= cps+" | "+durs;
+		var msg=cActTit + " ("+cps+" | "+durs+ ")";
+		if(ps==2){msg="(ekehome) "+ msg;}
+		if(blnStatusBar){window.status=(msg);return true;}
+	}
+	else{var laps= dur-cp; 
+		var strLaps=wmpTime(laps);
+		disp2.innerHTML= strLaps + " | "+durs;
+		var msg= cActTit + " (" + strLaps + " | "+durs + ")";
+		if(ps==2){msg="(ekehome) "+ msg;}
+		if(blnStatusBar){window.status=(msg);return true;}
+	}
+
+ }
+ else{disp2.innerHTML="00:00 | 00:00";}
+}
+
+
+function chgTimeFmt(){
+ var wmps=Exobud.playState;
+ if(wmps == 3){clearInterval(tidTLab);}
+ if(blnElaps){blnElaps=false; disp2.innerHTML="Laps";}
+ else{blnElaps=true;disp2.innerHTML="ELaps";}
+ tidMsg=setTimeout('rtnTLab()',1000); 
+}
+
+// rtnTLab()
+function rtnTLab(){
+clearTimeout(tidMsg);
+var wmps=Exobud.playState;
+if(wmps == 3){tidTLab=setInterval('showTLab()',1000);}
+else{showTLab();}
+}
+
+function wmpTime(dur){
+	var hh, min, sec, timeLabel
+	hh = Math.floor(dur/3600);
+	min = Math.floor(dur / 60)%60;
+	sec = Math.floor(dur % 60);
+	if (isNaN(min)){ return "00:00"; }
+	if (isNaN(hh) || hh==0){timeLabel="";}
+	else{
+		if(hh >9){timeLabel = hh.toString()+":";}
+		else{timeLabel="0"+hh.toString() +":";}
+	}
+  	if ( min > 9 ){  timeLabel = timeLabel + min.toString() + ":"; }
+	else {timeLabel = timeLabel + "0" +min.toString() + ":";}
+	if ( sec > 9 ){timeLabel = timeLabel + sec.toString();}
+	else{timeLabel = timeLabel + "0" + sec.toString();}
+	return timeLabel;
+}
+
+var vmax = 100;
+var vmin=0;
+var vdep = 10;
+
+function wmpVolUp(){  
+	var wmps=Exobud.playState;
+	if(wmps == 3){clearInterval(tidTLab);}
+	var ps = Exobud.settings;
+	if(ps.mute){ps.mute = false; disp2.innerHTML="Speach";imgChange('vmute',0);}
+	else{
+		if (ps.volume >= (vmax-vdep)) {ps.volume = vmax;}
+		else {  ps.volume = ps.volume + vdep;}
+		disp2.innerHTML="Vol. " + ps.volume +"%";
+	}
+	tidMsg=setTimeout('rtnTLab()',1000);
+}
+
+function wmpVolDn(){  
+	var wmps=Exobud.playState;
+	if(wmps == 3){clearInterval(tidTLab);}
+	var ps = Exobud.settings;
+	if(ps.mute){ps.mute = false;disp2.innerHTML="Speach";imgChange('vmute',0);}
+	else{
+		if (ps.volume <= vdep){ ps.volume = vmin;}
+		else{ps.volume = ps.volume - vdep;}
+		disp2.innerHTML="Vol. " + ps.volume +"%";
+	}
+	tidMsg=setTimeout('rtnTLab()',1000);
+}
+
+
+function wmpMute(){  
+	var wmps=Exobud.playState;
+	if(wmps == 3){clearInterval(tidTLab);}
+	var ps = Exobud.settings;
+	if(!ps.mute){ps.mute = true;disp2.innerHTML="Mute On"; imgChange("vmute", 1);}
+	else {ps.mute = false;disp2.innerHTML="Mute Off"; imgChange("vmute", 0)}
+	tidMsg=setTimeout('rtnTLab()',1000);
+}
+
+function waitMsg(){
+ capText.innerHTML="ekehome Captioning(SMI)";
+ if(intExobudStat ==1){disp1.innerHTML="ekehome";}
+ if(intExobudStat ==2){disp1.innerHTML="ekehome";}
+ if(blnStatusBar){
+	if(intExobudStat ==1){window.status=('ekehome');return true;}
+	if(intExobudStat ==2){window.status=('ekehome'); return true;}
+ }
+}
+
+
+function openPlist() { 
+	window.open("cnsidepl.html" , "mplist", " width=280 , height=500 ,scrollbars=auto , resizable=no , copyhistory=no");
+}
+
+
+function chkWmpState(){
+// 0(Undefined) 1(Stopped) 2 (Paused) 3(Playing) 4(ScanFowrd) 5(ScanReverse)
+// 6(Buffering) 7(Waitng) 8(MediaEnded) 9(Transitioning) 10(Redy)
+ return Exobud.playState;
+}
+
+function chkWmpOState(){
+// 0(Undefined) 8(MediaChanging) 9(MediaLocating) 10(MediaConnecting) 11(MediaLoading) 
+// 12(MediaOpening) 13(MediaOpen) 20(MediaWaiting) 21(OpeningUnknownURL)
+ return Exobud.openState;
+}
+
+function chkOnline(){
+// true(Network Connected) false(Network Lost)
+return Exobud.isOnline;
+}
+
+function vizExobud(){
+//Exobud.launchURL("http://my.6to23.com/ekehome/1/1.htm");
+  window.open("http://my.6to23.com/ekehome/1/1.htm","vizExobud");
+}
+
+          </SCRIPT>
+
+<SCRIPT language=JavaScript>
+<!--
+//基本功能设置，true为开放，false为关闭。
+//定义是否自动播放
+var blnAutoStart = true;
+//定义是否循序播放
+var blnRndPlay = true; 
+//定义是否显示状态栏
+var blnStatusBar = true; 
+//定义是否显示音控状态
+var blnShowVolCtrl = true;
+//定义是否允许显示播放清单
+var blnShowPlist = true;
+//定义是否使用SMI模式（如无需要请勿修改）
+var blnUseSmi = true;
+//定义是否循环播放
+var blnLoopTrk = true;
+//定义是否跳出歌曲信息
+var blnShowMmInfo =false;
+--></SCRIPT>
+
+<SCRIPT language=JavaScript>
+//-- ekehome 播放列表;
+//-- 详细格式 mkList("歌曲路径","歌曲信息","间隔时间","是否加载列表留空为加载，不加载填f"); //-- 简单格式 mkList("歌曲路径","歌曲信息","是否加载列表留空为加载，不加载填f");
+mkList("http://anime.nease.net/001.mp3","名侦探柯南－主题曲","");
+mkList("http://www.ekehome.8u8.com/001.wma","动漫音乐[欢迎光临一刻家园]","");
+mkList("http://www.ekehome.8u8.com/002.wma","动漫音乐[欢迎光临一刻家园]","");
+mkList("http://www.ekehome.8u8.com/003.wma","动漫音乐[欢迎光临一刻家园]","");
+mkList("http://www.ekehome.8u8.com/004.wma","动漫音乐[欢迎光临一刻家园]","");
+mkList("http://www.ekehome.8u8.com/005.wma","动漫音乐[欢迎光临一刻家园]","");
+mkList("http://www.ekehome.8u8.com/006.wma","动漫音乐[欢迎光临一刻家园]","");
+mkList("http://www.ekehome.8u8.com/007.wma","动漫音乐[欢迎光临一刻家园]","");
+mkList("http://www.ekehome.8u8.com/008.wma","动漫音乐[欢迎光临一刻家园]","");
+mkList("http://www.ekehome.8u8.com/009.wma","动漫音乐[欢迎光临一刻家园]","");
+mkList("http://www.ekehome.8u8.com/010.wma","动漫音乐[欢迎光临一刻家园]","");
+mkList("http://www.ekehome.8u8.com/011.wma","动漫音乐[欢迎光临一刻家园]","");
+mkList("http://www.ekehome.8u8.com/012.wma","动漫音乐[欢迎光临一刻家园]","");
+mkList("http://www.ekehome.8u8.com/013.wma","动漫音乐[欢迎光临一刻家园]","");
+mkList("http://www.ekehome.8u8.com/014.wma","动漫音乐[欢迎光临一刻家园]","");
+mkList("http://www.ekehome.8u8.com/015.wma","动漫音乐[欢迎光临一刻家园]","");
+mkList("http://www.ekehome.8u8.com/016.wma","动漫音乐[欢迎光临一刻家园]","");
+mkList("http://www.ekehome.8u8.com/017.wma","动漫音乐[欢迎光临一刻家园]","");
+mkList("http://www.ekehome.8u8.com/018.wma","动漫音乐[欢迎光临一刻家园]","");
+mkList("http://www.ekehome.8u8.com/019.wma","动漫音乐[欢迎光临一刻家园]","");
+mkList("http://www.ekehome.8u8.com/020.wma","动漫音乐[欢迎光临一刻家园]","");
+          </SCRIPT>
+
+
+
+<SCRIPT event=openStateChange(sf) for=Exobud 
+language=JScript> evtOSChg(sf); </SCRIPT>
+
+<SCRIPT event=playStateChange(ns) for=Exobud 
+language=JScript> evtPSChg(ns); </SCRIPT>
+
+<SCRIPT event=error() for=Exobud language=JScript> evtWmpError(); </SCRIPT>
+
+<SCRIPT event=Buffering(bf) for=Exobud 
+language=JScript> evtWmpBuff(bf); </SCRIPT>
+
+<SCRIPT language=JavaScript>
+ toggleKey =new Object();
+ toggleKey[0] = "_off";
+ toggleKey[1] = "_on";
+ toggleKey[2] = "_ovr";
+ toggleKey[3] = "_out";
+ toggleKey[4] = "_mdn";
+ toggleKey[5] = "_mup";
+
+function imgChange(id , act){
+	if(document.images){ document.images[id].src = eval("img."+ id + toggleKey[act] + ".src");}
+}
+
+// 设定播放器状态图片
+
+ if(document.images){
+	img = new Object();
+	//静音
+	img.vmute_off = new Image();
+	img.vmute_off.src = "photo/20030318/btn_mute_off.gif";
+	img.vmute_on = new Image();
+	img.vmute_on.src = "photo/20030318/btn_mute_on.gif";
+	
+	//模式
+	img.pmode_off = new Image();
+	img.pmode_off.src = "photo/20030318/btn_rndmode_off.gif";
+	img.pmode_on = new Image();
+	img.pmode_on.src = "photo/20030318/btn_rndmode_on.gif";
+
+	//循环
+	img.rept_off = new Image();
+	img.rept_off.src = "photo/20030318/btn_rept_off.gif";
+	img.rept_on = new Image();
+	img.rept_on.src = "photo/20030318/btn_rept_on.gif";
+
+	//播放
+	img.playt_off = new Image();
+	img.playt_off.src = "photo/20030318/btn_play.gif";
+	img.playt_on = new Image();
+	img.playt_on.src = "photo/20030318/btn_play_on.gif";
+	img.playt_ovr = new Image();
+	img.playt_ovr.src = "photo/20030318/btn_play_ovr.gif";
+
+
+	//暂停/继续
+	img.pauzt_off = new Image();
+	img.pauzt_off.src = "photo/20030318/btn_pauz_off.gif";
+	img.pauzt_on = new Image();
+	img.pauzt_on.src = "photo/20030318/btn_pauz_on.gif";
+	img.pauzt_ovr = new Image();
+	img.pauzt_ovr.src = "photo/20030318/btn_pauz_ovr.gif";
+
+	//停止
+	img.stopt_off = new Image();
+	img.stopt_off.src = "photo/20030318/btn_stop.gif";
+	img.stopt_on = new Image();
+	img.stopt_on.src = "photo/20030318/btn_stop_on.gif";
+	img.stopt_ovr = new Image();
+	img.stopt_ovr.src = "photo/20030318/btn_stop_ovr.gif";
+
+	//状态
+	img.scope_off=new Image();
+	img.scope_off.src="photo/20030318/scope_off.gif";
+	img.scope_on=new Image();
+	img.scope_on.src="photo/20030318/scope_on.gif";
+
+	//上一首
+	img.prevt_out = new Image();
+	img.prevt_out.src = "photo/20030318/btn_prev.gif";
+	img.prevt_ovr = new Image();
+	img.prevt_ovr.src = "photo/20030318/btn_prev_ovr.gif";
+
+	//下一首
+	img.nextt_out = new Image();
+	img.nextt_out.src = "photo/20030318/btn_next.gif";
+	img.nextt_ovr = new Image();
+	img.nextt_ovr.src = "photo/20030318/btn_next_ovr.gif";
+
+	//增音
+	img.vup_out = new Image();
+	img.vup_out.src = "photo/20030318/btn_vup.gif";
+	img.vup_ovr = new Image();
+	img.vup_ovr.src = "photo/20030318/btn_vup_ovr.gif";
+
+	//降音
+	img.vdn_out = new Image();
+	img.vdn_out.src = "photo/20030318/btn_vdn.gif";
+	img.vdn_ovr = new Image();
+	img.vdn_ovr.src = "photo/20030318/btn_vdn_ovr.gif";
+
+	//列表
+	img.plist_out = new Image();
+	img.plist_out.src = "photo/20030318/btn_plist.gif";
+	img.plist_ovr = new Image();
+	img.plist_ovr.src = "photo/20030318/btn_plist_ovr.gif";
+
+}
+
+function imgtog(tg , act){
+ if(tg=="vmute"){
+	if(act=="2"){ imgChange("vmute", 1);}
+	else{imgmute("vmute",0);}
+ }
+
+ if(tg=="vdn"){
+	if(act=="2"){ imgChange("vdn", 2);}
+	else{imgChange("vdn",3);}	
+ }
+
+ if(tg=="vup"){
+	if(act=="2"){ imgChange("vup", 2);}
+	else{imgChange("vup",3);}	
+ }
+
+ if(tg=="pmode"){
+	if(act=="2"){ imgChange("pmode", 1);}
+	else{imgrnd();}	
+ }
+
+ if(tg=="rept"){
+	if(act=="2"){ imgChange("rept", 1);}
+	else{imgrept();}	
+ }
+
+ if(tg=="nextt"){
+	if(act=="2"){ imgChange("nextt", 2);}
+	else{imgChange("nextt",3);}	
+ }
+
+ if(tg=="prevt"){
+	if(act=="2"){ imgChange("prevt", 2);}
+	else{imgChange("prevt",3);}	
+ }
+
+ if(tg=="pauzt"){
+	if(act=="2"){ imgpauz(2);}
+	else{imgpauz();}
+}
+
+ if(tg=="playt"){
+	if(act=="2"){ imgplay(2);}
+	else{imgplay();}
+}
+
+ if(tg=="stopt"){
+	if(act=="2"){ imgstop(2);}
+	else{imgstop();}
+}
+
+ if(tg=="plist"){
+	if(act=="2"){ imgChange("plist", 2);}
+	else{imgChange("plist",3);}	
+ }
+}
+
+
+function imgmute(){
+ var ps=Exobud.settings;
+ if(ps.mute){ imgChange("vmute",1);}
+ else{imgChange("vmute",0);}
+}
+
+function imgrnd(){
+ if(blnRndPlay){imgChange("pmode", 1);}
+ else{imgChange("pmode", 0);}
+}
+
+function imgrept(){
+ if(blnRept){imgChange("rept", 1);}
+ else{imgChange("rept", 0);}
+}
+
+function imgpauz(f){
+ var wmps=Exobud.playState;
+ if(f==2){imgChange("pauzt",2);}
+ else{ if(wmps==2){imgChange("pauzt",1);}
+	else{imgChange("pauzt",0);}
+ }
+}
+
+function imgplay(f){
+ var wmps=Exobud.playState;
+ if(f==2){ imgChange("playt",2);}
+ else{ if(wmps==3){imgChange("playt",1);}
+	else{imgChange("playt",0);}
+ }
+}
+
+function imgstop(f){
+ var wmps=Exobud.playState;
+ if(f==2){ imgChange("stopt",2);}
+ else{ if(wmps==2 || wmps==3){imgChange("stopt",0);}
+	else{imgChange("stopt",1);}
+	
+ }
+}
+
+          </SCRIPT>
+
+<META content="Microsoft FrontPage 5.0" name=GENERATOR></HEAD>
+<BODY leftMargin=0 ondragstart="return false" onload=initExobud();show5(); 
+onselectstart="return false" topMargin=0 
+marginheight="0" marginwidth="0"><!--  调用Windows Media 7.0播放器 -->
+<OBJECT classid=CLSID:6BF52A52-394A-11d3-B153-00C04F79FAA6 height=0 id=Exobud 
+style="HEIGHT: 0px; LEFT: 0px; POSITION: relative; TOP: 0px; WIDTH: 0px" 
+type=application/x-oleobject width=0><PARAM NAME="autoStart" VALUE="-1"><PARAM NAME="balance" VALUE="0"><PARAM NAME="currentPosition" VALUE="0"><PARAM NAME="currentMarker" VALUE="0">
+  <PARAM NAME="enableContextMenu" VALUE="0">
+  <PARAM NAME="enableErrorDialogs" VALUE="0"><PARAM NAME="enabled" VALUE="-1">
+  <PARAM NAME="fullScreen" VALUE="0"><PARAM NAME="invokeURLs" VALUE="0">
+  <PARAM NAME="mute" VALUE="0"><PARAM NAME="playCount" VALUE="1"><PARAM NAME="rate" VALUE="1"><PARAM NAME="uiMode" VALUE="none"><PARAM NAME="volume" VALUE="100">
+  <param name="URL" value>
+  <param name="defaultFrame" value>
+  <param name="baseURL" value>
+  <param name="stretchToFit" value="0">
+  <param name="windowlessVideo" value="0">
+  <param name="SAMIStyle" value>
+  <param name="SAMILang" value>
+  <param name="SAMIFilename" value>
+  <param name="captioningID" value>
+  <param name="_cx" value="5080">
+  <param name="_cy" value="5080">
+</OBJECT>
+<TABLE border=0 cellPadding=0 cellSpacing=0 height=26 width="416" style="border-collapse: collapse" bordercolor="#111111" bgcolor="##C9F3FF">
+  <TBODY>
+  <TR>
+    <TD align=middle background="photo/20030318/bg.gif" height=26 noWrap width=25 valign="top">
+    <IMG border=0 height=21 name=scope 
+      onclick=vizExobud(); src="photo/20030318/scope_off.gif" 
+      style="CURSOR: help" width=21></TD>
+    <TD background="photo/20030318/bg1l.gif" height=25 noWrap 
+    width=11>　</TD>
+    <TD background="photo/20030318/bg1c.gif" height=25 noWrap 
+    vAlign=center width=93>&nbsp; 
+      <MARQUEE height=12 scrollAmount=2 scrollDelay=70 width=121><SPAN 
+      class=title id=disp1 align="left" width="80">ekehome</SPAN> <SPAN 
+      class=title id=liveclock width="80"></SPAN></MARQUEE></TD>
+    <TD background="photo/20030318/bg1r.gif" height=25 noWrap 
+    width=9>　</TD>
+    <TD background="photo/20030318/bg2l.gif" height=25 noWrap 
+    width=11>　</TD>
+    <TD align=middle background="photo/20030318/bg2c.gif" height=25 
+    noWrap onclick=chgTimeFmt();this.blur(); vAlign=center width=95><SPAN 
+      class=time id=disp2 style="CURSOR: hand" title=时间显示(Elaps/Laps) 
+      align="center" width="105">00:00 | 00:00</SPAN> </TD>
+    <TD background="photo/20030318/bg2r.gif" height=25 noWrap 
+    width=11>　</TD>
+    <TD background="photo/20030318/bg.gif" height=25 noWrap 
+    width=5>　</TD>
+    <TD background="photo/20030318/bg.gif" height=25 noWrap 
+    vAlign=bottom width=15>
+    <IMG border=0 name=vmute 
+      onclick=wmpMute();this.blur(); onmouseout="imgtog('vmute',3);" 
+      onmouseover="imgtog('vmute',2);" 
+      src="photo/20030318/btn_mute_off.gif" style="CURSOR: hand" 
+      title=把声音关闭掉 (Mute) width="15" height="25"></TD>
+    <TD background="photo/20030318/bg.gif" height=25 noWrap 
+    vAlign=bottom width=15>
+    <IMG border=0 name=vdn 
+      onclick=wmpVolDn();this.blur(); onmouseout="imgtog('vdn',3)" 
+      onmouseover="imgtog('vdn',2);" src="photo/20030318/btn_vdn.gif" 
+      style="CURSOR: hand" title=小声一点点 width="15" height="25"></TD>
+    <TD background="photo/20030318/bg.gif" height=25 noWrap 
+    vAlign=bottom width=15>
+    <IMG border=0 name=vup 
+      onclick=wmpVolUp();this.blur(); onmouseout="imgtog('vup',3)" 
+      onmouseover="imgtog('vup',2);" src="photo/20030318/btn_vup.gif" 
+      style="CURSOR: hand" title=大声一点点 width="15" height="25"></TD>
+    <TD background="photo/20030318/bg.gif" height=25 noWrap 
+    width=5>　</TD>
+    <TD background="photo/20030318/bg.gif" height=25 noWrap 
+    vAlign=bottom width=17><IMG border=0 height=25 name=pmode 
+      onclick=chgPMode();this.blur(); onmouseout="imgtog('pmode',3)" 
+      onmouseover="imgtog('pmode',2);" 
+      src="photo/20030318/btn_rndmode_off.gif" style="CURSOR: hand" 
+      title=模式 width=15></TD>
+    <TD background="photo/20030318/bg.gif" height=25 noWrap 
+    vAlign=bottom width=15>
+    <IMG border=0 name=rept 
+      onclick=chkRept();this.blur(); onmouseout="imgtog('rept',3)" 
+      onmouseover="imgtog('rept',2);" 
+      src="photo/20030318/btn_rept_off.gif" style="CURSOR: hand" 
+      title=循环 width="15" height="25"></TD>
+    <TD background="photo/20030318/bg.gif" height=25 noWrap 
+    width=5>　</TD>
+    <TD background="photo/20030318/bg.gif" height=25 noWrap 
+    vAlign=bottom width=24>
+    <IMG border=0 name=prevt 
+      onclick=playPrev();this.blur(); onmouseout="imgtog('prevt',3)" 
+      onmouseover="imgtog('prevt',2);" src="photo/20030318/btn_prev.gif" 
+      style="CURSOR: hand" title=上一首 width="24" height="25"></TD>
+    <TD background="photo/20030318/bg.gif" height=25 noWrap 
+    vAlign=bottom width=24>
+    <IMG border=0 name=pauzt 
+      onclick=wmpPP();this.blur(); onmouseout="imgtog('pauzt',3)" 
+      onmouseover="imgtog('pauzt',2);" 
+      src="photo/20030318/btn_pauz_off.gif" style="CURSOR: hand" 
+      title=暂停/继续 width="24" height="25"></TD>
+    <TD background="photo/20030318/bg.gif" height=25 noWrap 
+    vAlign=bottom width=24>
+    <IMG border=0 name=stopt 
+      onclick=wmpStop();this.blur(); onmouseout="imgtog('stopt',3)" 
+      onmouseover="imgtog('stopt',2);" src="photo/20030318/btn_stop.gif" 
+      style="CURSOR: hand" title=停止 width="24" height="25"></TD>
+    <TD background="photo/20030318/bg.gif" height=25 noWrap 
+    vAlign=bottom width=24>
+    <IMG border=0 name=playt 
+      onclick=startExobud();this.blur(); onmouseout="imgtog('playt',3)" 
+      onmouseover="imgtog('playt',2);" src="photo/20030318/btn_play.gif" 
+      style="CURSOR: hand" title=播放 width="24" height="25"></TD>
+    <TD background="photo/20030318/bg.gif" height=25 noWrap 
+    vAlign=bottom width=24>
+    <IMG border=0 name=nextt 
+      onclick=playNext();this.blur(); onmouseout="imgtog('nextt',3)" 
+      onmouseover="imgtog('nextt',2);" src="photo/20030318/btn_next.gif" 
+      style="CURSOR: hand" title=下一首 width="24" height="25"></TD>
+    <TD background="photo/20030318/bg.gif" height=25 noWrap 
+    width=5>　</TD>
+    <TD background="photo/20030318/bg.gif" height=25 noWrap 
+    vAlign=bottom width="104">
+    <IMG border=0 name=plist 
+      onclick=openPlist();this.blur(); onmouseout="imgtog('plist',3)" 
+      onmouseover="imgtog('plist',2);" 
+      src="photo/20030318/btn_plist.gif" style="CURSOR: hand" title=歌词 width="24" height="25"></TD>
+    <TD background="photo/20030318/bg.gif" height=25 
+  noWrap width="116">　</TD></TR><TR>
+    <TD colSpan=23 height=0 width="781">
+      <DIV id=capText 
+      style="BACKGROUND-COLOR: #555555; COLOR: white; DISPLAY: none; FONT-SIZE: 11px; HEIGHT: 0px; WIDTH: 100%">
+      </DIV></TD></TR>
+ </TBODY></TABLE>
+
+</body>
+
+</html>
+<span style="display:none;">这个模版来自http://BestMoban.Com,更多模版请访问<a href="http://BestMoban.Com">http://BestMoban.Com</a>&nbsp;<a href="http://Moban.17Easy.Com">http://Moban.17Easy.Com</a>&nbsp;<a href="http://www.mb8.cn">http://www.mb8.cn</a></span>
